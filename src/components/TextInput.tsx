@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Upload, FileText, AlertCircle } from 'lucide-react';
-import { extractTextFromPDF } from '../utils/pdfExtractor';
+import { sanitizeTextPreserveFormatting } from '../utils/textSanitizer';
+import { PDFPreview } from './PDFPreview';
 
 interface TextInputProps {
   onTextSubmit: (text: string) => void;
@@ -11,6 +12,8 @@ export function TextInput({ onTextSubmit, isLoading }: TextInputProps) {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -19,21 +22,43 @@ export function TextInput({ onTextSubmit, isLoading }: TextInputProps) {
 
   const handleFileUpload = async (file: File) => {
     setError(null);
+    console.log('=== File Upload Started ===');
+    console.log('File:', file.name, file.type, file.size);
 
     try {
       if (file.type === 'application/pdf') {
-        const extractedText = await extractTextFromPDF(file);
-        setText(extractedText);
+        console.log('PDF detected, showing preview...');
+        setPdfFile(file);
+        setShowPdfPreview(true);
       } else if (file.type === 'text/plain') {
+        console.log('Processing as text file...');
         const text = await file.text();
         setText(text);
       } else {
-        setError('Please upload a PDF or TXT file');
+        console.warn('Unsupported file type:', file.type);
+        setError(`Please upload a PDF or TXT file (received: ${file.type})`);
       }
     } catch (err) {
-      setError('Failed to extract text from file. Please try again.');
-      console.error('File extraction error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to process file: ${errorMessage}`);
+      console.error('=== File processing error ===');
+      console.error('Error:', err);
     }
+  };
+
+  const handlePdfPagesSelected = (pages: number[], extractedText: string) => {
+    console.log('Selected pages:', pages);
+    console.log('Extracted text length:', extractedText.length);
+    
+    const sanitizedText = sanitizeTextPreserveFormatting(extractedText);
+    setText(sanitizedText);
+    setShowPdfPreview(false);
+    setPdfFile(null);
+  };
+
+  const handleCancelPdfPreview = () => {
+    setShowPdfPreview(false);
+    setPdfFile(null);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +100,19 @@ export function TextInput({ onTextSubmit, isLoading }: TextInputProps) {
 
     onTextSubmit(text);
   };
+
+  // Show PDF preview if a PDF was uploaded
+  if (showPdfPreview && pdfFile) {
+    return (
+      <div className="w-full max-w-7xl mx-auto p-6">
+        <PDFPreview
+          file={pdfFile}
+          onPagesSelected={handlePdfPagesSelected}
+          onCancel={handleCancelPdfPreview}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6">
@@ -168,7 +206,7 @@ export function TextInput({ onTextSubmit, isLoading }: TextInputProps) {
         </button>
 
         <p className="text-xs text-gray-500 mt-4 text-center">
-          Analysis is AI-generated and may be imperfect. No data is stored after your session ends.
+          Analysis is AI-generated and may be imperfect. Data is processed locally and not stored.
         </p>
       </div>
     </div>

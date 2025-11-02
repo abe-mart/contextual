@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { FileText, ArrowLeft, Loader2 } from 'lucide-react';
+import { FileText, ArrowLeft, Loader2, ChevronDown } from 'lucide-react';
 import { TextInput } from './components/TextInput';
 import { TextVisualization } from './components/TextVisualization';
 import { TermDetail } from './components/TermDetail';
 import { TermsSummary } from './components/TermsSummary';
 import { analyzeText } from './services/openai';
-import { supabase } from './lib/supabase';
 import { AmbiguousTerm } from './types';
 
 type AppState = 'input' | 'analyzing' | 'results';
@@ -25,59 +24,12 @@ function App() {
     setProgress({ current: 0, total: 0 });
 
     try {
-      const session = await supabase
-        .from('analysis_sessions')
-        .insert({
-          text_content: submittedText,
-          status: 'processing',
-        })
-        .select()
-        .single();
-
-      if (session.error) throw session.error;
-
       const analyzedTerms = await analyzeText(
         submittedText,
         (current, total) => {
           setProgress({ current, total });
         }
       );
-
-      if (session.data) {
-        await supabase
-          .from('analysis_sessions')
-          .update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-          })
-          .eq('id', session.data.id);
-
-        for (const term of analyzedTerms) {
-          const termResult = await supabase
-            .from('ambiguous_terms')
-            .insert({
-              session_id: session.data.id,
-              term: term.term,
-              context: term.context,
-              position_start: term.position_start,
-              position_end: term.position_end,
-              likely_meaning: term.likely_intended_meaning,
-              confidence: term.confidence,
-            })
-            .select()
-            .single();
-
-          if (termResult.data) {
-            for (const meaning of term.possible_meanings) {
-              await supabase.from('term_meanings').insert({
-                term_id: termResult.data.id,
-                field: meaning.field,
-                definition: meaning.definition,
-              });
-            }
-          }
-        }
-      }
 
       setTerms(analyzedTerms);
       setState('results');
@@ -163,28 +115,86 @@ function App() {
         )}
 
         {state === 'results' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <TextVisualization
-                text={text}
-                terms={terms}
-                onTermClick={handleTermClick}
-                selectedTerm={selectedTerm}
-              />
-              {selectedTerm && (
-                <TermDetail
-                  term={selectedTerm}
-                  onClose={() => setSelectedTerm(null)}
+          <div className="relative">
+            {/* Mobile terms button */}
+            <div className="lg:hidden mb-4">
+              <button
+                onClick={() => {
+                  const panel = document.getElementById('mobile-terms-panel');
+                  panel?.classList.toggle('hidden');
+                }}
+                className="w-full flex items-center justify-between p-4 bg-white rounded-lg shadow-lg border border-gray-200"
+              >
+                <span className="font-semibold text-gray-800">
+                  View All Terms ({terms.length})
+                </span>
+                <ChevronDown className="w-5 h-5 text-gray-600" />
+              </button>
+              <div id="mobile-terms-panel" className="hidden mt-2">
+                <TermsSummary
+                  terms={terms}
+                  onTermSelect={handleTermClick}
+                  selectedTerm={selectedTerm}
                 />
-              )}
+              </div>
             </div>
-            <div className="lg:col-span-1">
-              <TermsSummary
-                terms={terms}
-                onTermSelect={handleTermClick}
-                selectedTerm={selectedTerm}
-              />
+
+            <div className="flex gap-6">
+              {/* Detail panel - slides in from left when term is selected */}
+              <div className={`
+                hidden lg:block flex-shrink-0 transition-all duration-300 ease-out
+                ${selectedTerm ? 'w-96 opacity-100' : 'w-0 opacity-0 overflow-hidden'}
+              `}>
+                {selectedTerm && (
+                  <div className="sticky top-6 w-96">
+                    <TermDetail
+                      term={selectedTerm}
+                      onClose={() => setSelectedTerm(null)}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Main content area - text visualization */}
+              <div className="flex-1 min-w-0">
+                <TextVisualization
+                  text={text}
+                  terms={terms}
+                  onTermClick={handleTermClick}
+                  selectedTerm={selectedTerm}
+                />
+              </div>
+              
+              {/* Desktop side panel for terms summary - always visible */}
+              <div className="hidden lg:block w-80 flex-shrink-0">
+                <div className="sticky top-6">
+                  <TermsSummary
+                    terms={terms}
+                    onTermSelect={handleTermClick}
+                    selectedTerm={selectedTerm}
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* Mobile detail panel - slides up from bottom */}
+            {selectedTerm && (
+              <>
+                {/* Overlay for mobile */}
+                <div 
+                  className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+                  onClick={() => setSelectedTerm(null)}
+                />
+                
+                {/* Detail panel - bottom sheet on mobile */}
+                <div className="fixed bottom-0 left-0 right-0 lg:hidden w-full h-[75vh] bg-white rounded-t-2xl shadow-2xl z-50 overflow-hidden transform transition-transform duration-300 ease-out">
+                  <TermDetail
+                    term={selectedTerm}
+                    onClose={() => setSelectedTerm(null)}
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
       </main>
@@ -196,8 +206,7 @@ function App() {
             imperfect.
           </p>
           <p className="mt-1">
-            Your data is processed securely and not stored after your session
-            ends.
+            Your data is processed locally in your browser and is not stored.
           </p>
         </div>
       </footer>

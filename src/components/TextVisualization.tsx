@@ -42,21 +42,23 @@ export function TextVisualization({
         const isSelected = selectedTerm?.term === term.term;
         const confidenceColor =
           term.confidence >= 80
-            ? 'bg-green-200 hover:bg-green-300'
+            ? 'bg-green-200 hover:bg-green-300 border-green-400'
             : term.confidence >= 60
-            ? 'bg-yellow-200 hover:bg-yellow-300'
-            : 'bg-orange-200 hover:bg-orange-300';
+            ? 'bg-yellow-200 hover:bg-yellow-300 border-yellow-400'
+            : 'bg-orange-200 hover:bg-orange-300 border-orange-400';
 
         elements.push(
           <mark
             key={`term-${idx}`}
-            className={`cursor-pointer transition-colors ${
-              isSelected
-                ? 'bg-blue-400 ring-2 ring-blue-500'
-                : confidenceColor
-            }`}
+            className={`
+              cursor-pointer transition-all duration-200 rounded-sm px-0.5
+              ${isSelected
+                ? 'bg-blue-500 text-white ring-2 ring-blue-400 ring-offset-1 shadow-lg scale-105'
+                : `${confidenceColor} hover:shadow-md hover:scale-102 border-b-2`
+              }
+            `}
             onClick={() => onTermClick(term)}
-            title={`${term.term} - Click for details`}
+            title={`${term.term} - ${term.confidence}% confidence - Click for details`}
           >
             {text.substring(term.position_start, term.position_end)}
           </mark>
@@ -76,58 +78,69 @@ export function TextVisualization({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Analyzed Text</h2>
-        <button
-          onClick={() => setHighlightsEnabled(!highlightsEnabled)}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          {highlightsEnabled ? (
-            <>
-              <EyeOff className="w-4 h-4" />
-              Hide Highlights
-            </>
-          ) : (
-            <>
-              <Eye className="w-4 h-4" />
-              Show Highlights
-            </>
-          )}
-        </button>
-      </div>
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-2xl font-bold text-gray-800">Analyzed Text</h2>
+          <button
+            onClick={() => setHighlightsEnabled(!highlightsEnabled)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+          >
+            {highlightsEnabled ? (
+              <>
+                <EyeOff className="w-4 h-4" />
+                <span className="text-sm font-medium">Hide Highlights</span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4" />
+                <span className="text-sm font-medium">Show Highlights</span>
+              </>
+            )}
+          </button>
+        </div>
 
-      {highlightsEnabled && terms.length > 0 && (
-        <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <p className="text-sm text-gray-700 mb-2 font-medium">
-            Highlight Legend:
-          </p>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-4 h-4 bg-green-200 rounded"></span>
-              <span className="text-gray-600">High confidence (80%+)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-4 h-4 bg-yellow-200 rounded"></span>
-              <span className="text-gray-600">Medium confidence (60-79%)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-4 h-4 bg-orange-200 rounded"></span>
-              <span className="text-gray-600">Lower confidence (&lt;60%)</span>
+        {highlightsEnabled && terms.length > 0 && (
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">
+              Highlight Legend
+            </p>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-5 h-3 bg-green-200 border-b-2 border-green-400 rounded-sm"></span>
+                <span className="text-gray-700">High (80%+)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-5 h-3 bg-yellow-200 border-b-2 border-yellow-400 rounded-sm"></span>
+                <span className="text-gray-700">Medium (60-79%)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-5 h-3 bg-orange-200 border-b-2 border-orange-400 rounded-sm"></span>
+                <span className="text-gray-700">Lower (&lt;60%)</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      <div className="prose max-w-none text-gray-700">
-        {renderHighlightedText()}
+        )}
       </div>
 
-      {terms.length === 0 && (
-        <p className="text-gray-500 text-center py-8">
-          No ambiguous terms identified in this text.
-        </p>
-      )}
+      {/* Text Content */}
+      <div className="p-8">
+        <div className="prose max-w-none text-gray-700 text-base leading-relaxed">
+          {renderHighlightedText()}
+        </div>
+
+        {terms.length === 0 && (
+          <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+              <Eye className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500 text-lg">
+              No ambiguous terms identified in this text.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -58,7 +58,7 @@ async function analyzeChunk(
   chunk: string,
   startIndex: number
 ): Promise<AmbiguousTerm[]> {
-  const prompt = `You are an academic text analyzer. Identify words or short phrases in the following text that may have multiple meanings across different academic fields.
+    const prompt = `You are an academic text analyzer. Identify ALL words or short phrases in the following text that may have multiple meanings across different academic fields.
 
 For each ambiguous term, provide:
 1. The term itself
@@ -67,22 +67,26 @@ For each ambiguous term, provide:
 4. Your best guess at the intended meaning in this context
 5. A confidence score (0-100) for your interpretation
 
-Return your analysis as a JSON array of objects with this structure:
+IMPORTANT: Return your analysis as a JSON object with a "terms" array, like this:
 {
-  "term": "string",
-  "context": "string",
-  "possible_meanings": [
-    {"field": "string", "definition": "string"}
-  ],
-  "likely_intended_meaning": "string",
-  "confidence": number
+  "terms": [
+    {
+      "term": "string",
+      "context": "string",
+      "possible_meanings": [
+        {"field": "string", "definition": "string"}
+      ],
+      "likely_intended_meaning": "string",
+      "confidence": number
+    }
+  ]
 }
 
 Text to analyze:
 ${chunk}`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     messages: [
       {
         role: 'system',
@@ -98,13 +102,36 @@ ${chunk}`;
   });
 
   const content = response.choices[0].message.content;
+  
+  // Debug logging
+  console.log('=== Raw OpenAI Response ===');
+  console.log('Full response object:', JSON.stringify(response, null, 2));
+  console.log('Content:', content);
+  console.log('========================');
+  
   if (!content) {
+    console.warn('No content in response');
     return [];
   }
 
   try {
     const parsed = JSON.parse(content);
-    const terms = parsed.terms || parsed.ambiguous_terms || [];
+    console.log('Parsed JSON:', parsed);
+    
+    // Handle both array and single object responses
+    let terms: any[] = [];
+    if (Array.isArray(parsed)) {
+      terms = parsed;
+    } else if (parsed.terms && Array.isArray(parsed.terms)) {
+      terms = parsed.terms;
+    } else if (parsed.ambiguous_terms && Array.isArray(parsed.ambiguous_terms)) {
+      terms = parsed.ambiguous_terms;
+    } else if (parsed.term) {
+      // Single term object returned directly
+      terms = [parsed];
+    }
+    
+    console.log('Extracted terms array:', terms);
 
     return terms.map((term: any) => {
       const termText = term.term || '';
@@ -123,6 +150,7 @@ ${chunk}`;
     });
   } catch (error) {
     console.error('Failed to parse OpenAI response:', error);
+    console.error('Raw content that failed to parse:', content);
     return [];
   }
 }
