@@ -1,3 +1,11 @@
+/**
+ * Contextual - Main Application Component
+ * 
+ * An intelligent tool for identifying ambiguous terms in academic texts.
+ * Uses OpenAI's GPT-4 to analyze documents and highlight terminology that
+ * may have multiple meanings across different academic disciplines.
+ */
+
 import { useState } from 'react';
 import { FileText, ArrowLeft, Loader2, ChevronDown } from 'lucide-react';
 import { TextInput } from './components/TextInput';
@@ -7,9 +15,11 @@ import { TermsSummary } from './components/TermsSummary';
 import { analyzeText } from './services/openai';
 import { AmbiguousTerm } from './types';
 
+/** Application workflow states */
 type AppState = 'input' | 'analyzing' | 'results';
 
 function App() {
+  // State management
   const [state, setState] = useState<AppState>('input');
   const [text, setText] = useState('');
   const [terms, setTerms] = useState<AmbiguousTerm[]>([]);
@@ -17,6 +27,10 @@ function App() {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Handles text submission and initiates the analysis process.
+   * Calls the OpenAI service to analyze the text and identify ambiguous terms.
+   */
   const handleTextSubmit = async (submittedText: string) => {
     setText(submittedText);
     setState('analyzing');
@@ -44,6 +58,9 @@ function App() {
     }
   };
 
+  /**
+   * Resets the application state to start a new analysis.
+   */
   const handleReset = () => {
     setState('input');
     setText('');
@@ -52,6 +69,10 @@ function App() {
     setError(null);
   };
 
+  /**
+   * Handles clicking on a term in the text or summary.
+   * Toggles the detail panel for the selected term.
+   */
   const handleTermClick = (term: AmbiguousTerm) => {
     setSelectedTerm(selectedTerm?.term === term.term ? null : term);
   };

@@ -1,3 +1,11 @@
+/**
+ * TermsSummary Component
+ * 
+ * Displays a sortable, searchable list of all identified ambiguous terms.
+ * Users can sort by position in text or confidence score, and search
+ * to filter the list. Clicking a term opens its detail panel.
+ */
+
 import { useState } from 'react';
 import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { AmbiguousTerm } from '../types';

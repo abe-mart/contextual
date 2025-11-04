@@ -1,3 +1,13 @@
+/**
+ * TextInput Component
+ * 
+ * Provides multiple ways to input academic text for analysis:
+ * - Direct text paste
+ * - Text file (.txt) upload
+ * - PDF file upload with page selection
+ * - Drag and drop functionality
+ */
+
 import { useState } from 'react';
 import { Upload, FileText, AlertCircle } from 'lucide-react';
 import { sanitizeTextPreserveFormatting } from '../utils/textSanitizer';
@@ -20,36 +30,35 @@ export function TextInput({ onTextSubmit, isLoading }: TextInputProps) {
     setError(null);
   };
 
+  /**
+   * Handles file upload for both PDF and text files.
+   */
   const handleFileUpload = async (file: File) => {
     setError(null);
-    console.log('=== File Upload Started ===');
-    console.log('File:', file.name, file.type, file.size);
 
     try {
       if (file.type === 'application/pdf') {
-        console.log('PDF detected, showing preview...');
+        // Show PDF preview for page selection
         setPdfFile(file);
         setShowPdfPreview(true);
       } else if (file.type === 'text/plain') {
-        console.log('Processing as text file...');
+        // Directly load text files
         const text = await file.text();
         setText(text);
       } else {
-        console.warn('Unsupported file type:', file.type);
         setError(`Please upload a PDF or TXT file (received: ${file.type})`);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(`Failed to process file: ${errorMessage}`);
-      console.error('=== File processing error ===');
-      console.error('Error:', err);
+      console.error('File processing error:', err);
     }
   };
 
-  const handlePdfPagesSelected = (pages: number[], extractedText: string) => {
-    console.log('Selected pages:', pages);
-    console.log('Extracted text length:', extractedText.length);
-    
+  /**
+   * Handles PDF page selection and text extraction.
+   */
+  const handlePdfPagesSelected = (_pages: number[], extractedText: string) => {
     const sanitizedText = sanitizeTextPreserveFormatting(extractedText);
     setText(sanitizedText);
     setShowPdfPreview(false);

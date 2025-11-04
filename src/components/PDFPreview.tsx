@@ -1,9 +1,17 @@
+/**
+ * PDFPreview Component
+ * 
+ * Provides a page-by-page preview of PDF files, allowing users to select
+ * specific pages for text analysis. Renders each page as an image and
+ * extracts text content when a page is selected.
+ */
+
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, FileText, Check, X } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Set up the worker
+// Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 interface PDFPreviewProps {

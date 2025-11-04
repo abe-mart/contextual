@@ -1,3 +1,11 @@
+/**
+ * TextVisualization Component
+ * 
+ * Displays the analyzed text with ambiguous terms highlighted.
+ * Color coding indicates confidence levels, and terms are clickable
+ * to view detailed information. Users can toggle highlights on/off.
+ */
+
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { AmbiguousTerm } from '../types';

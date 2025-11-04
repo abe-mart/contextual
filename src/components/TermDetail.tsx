@@ -1,3 +1,13 @@
+/**
+ * TermDetail Component
+ * 
+ * Displays detailed information about a selected ambiguous term including:
+ * - The term's context in the original text
+ * - The AI's likely interpretation
+ * - Confidence score
+ * - Alternative meanings from different academic fields
+ */
+
 import { X, BookOpen, Target, TrendingUp, ChevronRight } from 'lucide-react';
 import { AmbiguousTerm } from '../types';
 
